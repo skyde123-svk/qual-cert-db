@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>欧菲斯 SCS 资质证书数据库</title>
+<style>
+  :root{
+    --blue:#2563eb; --blue-d:#1e40af; --bg:#f4f6fa; --card:#ffffff; --line:#e5e9f0;
+    --txt:#1f2937; --sub:#6b7280; --red:#dc2626; --red-bg:#fef2f2;
+    --orange:#d97706; --orange-bg:#fffbeb; --green:#059669; --green-bg:#ecfdf5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:20px 28px}
+  header h1{font-size:20px;font-weight:600;letter-spacing:1px}
+  header .meta{font-size:12px;opacity:.85;margin-top:6px}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;padding:16px 28px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 18px;min-width:130px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .stat .num{font-size:22px;font-weight:700}
+  .stat .lbl{font-size:12px;color:var(--sub);margin-top:2px}
+  .stat.s-red .num{color:var(--red)}
+  .stat.s-orange .num{color:var(--orange)}
+  .stat.s-green .num{color:var(--green)}
+  .stat.s-blue .num{color:var(--blue)}
+  .tabs{display:flex;gap:4px;padding:16px 28px 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
+  .tab{padding:10px 18px;cursor:pointer;border-radius:8px 8px 0 0;font-weight:600;color:var(--sub);border:1px solid transparent;border-bottom:none;background:transparent;font-size:13px}
+  .tab:hover{color:var(--blue)}
+  .tab.active{background:var(--card);color:var(--blue);border-color:var(--line);position:relative;top:2px;border-bottom:2px solid var(--card)}
+  .tab .cnt{font-size:12px;font-weight:400;margin-left:4px;color:var(--sub)}
+  main{padding:18px 28px 40px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .toolbar input,.toolbar select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;outline:none;background:#fff}
+  .toolbar input:focus,.toolbar select:focus{border-color:var(--blue)}
+  .toolbar input[type=text]{width:280px}
+  .toolbar button{padding:7px 16px;border:none;border-radius:6px;background:var(--blue);color:#fff;cursor:pointer;font-size:13px}
+  .toolbar button:hover{background:var(--blue-d)}
+  .toolbar .spacer{flex:1}
+  .info{font-size:12px;color:var(--sub)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}
+  th{background:#f8fafc;font-weight:600;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0}
+  th:hover{color:var(--blue)}
+  th .arrow{font-size:10px;color:var(--blue)}
+  tr:hover td{background:#f8faff}
+  td.ellip{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;white-space:nowrap}
+  .b-valid{background:var(--green-bg);color:var(--green)}
+  .b-expired{background:var(--red-bg);color:var(--red)}
+  .b-expiring{background:var(--orange-bg);color:var(--orange)}
+  .files-cell{display:flex;flex-wrap:wrap;gap:4px}
+  .file-thumb{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border:1px solid var(--line);border-radius:10px;font-size:11px;background:#f8fafc;cursor:zoom-in;color:var(--blue)}
+  .file-thumb:hover{background:#eef2ff;border-color:var(--blue)}
+  .file-thumb.is-img::before{content:"🖼";font-size:11px}
+  .file-thumb.is-pdf::before{content:"📄";font-size:11px}
+  .file-thumb.is-other::before{content:"📎";font-size:11px}
+  #imgPreview{position:fixed;z-index:9999;display:none;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 44px rgba(0,0,0,.28);padding:10px;pointer-events:none;max-width:76vw}
+  #imgPreview img{display:block;max-width:72vw;max-height:78vh;margin:0 auto 4px}
+  #imgPreview.multi img{max-height:36vh}
+  #imgPreview iframe.pv-pdf{display:block;width:72vw;height:78vh;border:none;border-radius:6px;background:#525659;margin:0 auto 4px}
+  #imgPreview.multi iframe.pv-pdf{height:50vh}
+  #imgPreview .cap{font-size:11px;color:var(--sub);text-align:center;word-break:break-all;max-width:72vw}
+  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:none;align-items:center;justify-content:center}
+  #lbContent{max-width:94vw;max-height:90vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #lbContent img{max-width:92vw;max-height:88vh;user-select:none}
+  #lbContent iframe{width:92vw;height:88vh;border:none;border-radius:6px;background:#525659}
+  #lbBar{position:absolute;top:12px;right:20px;color:#fff;font-size:14px;display:flex;gap:20px;align-items:center;z-index:2}
+  #lbClose{cursor:pointer;font-size:24px;line-height:1}
+  #lbClose:hover{color:#fca5a5}
+  #lbPrev,#lbNext{position:absolute;top:50%;transform:translateY(-50%);font-size:52px;color:#fff;cursor:pointer;padding:0 16px;user-select:none;opacity:.65;z-index:2}
+  #lbPrev:hover,#lbNext:hover{opacity:1}
+  #lbPrev{left:6px}#lbNext{right:6px}
+  .date-exp{color:var(--red);font-weight:600}
+  .date-expiring{color:var(--orange);font-weight:600}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;font-size:13px;color:var(--sub)}
+  .pager button{padding:5px 12px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .pager button:not(:disabled):hover{border-color:var(--blue);color:var(--blue)}
+  .empty{padding:40px;text-align:center;color:var(--sub);background:var(--card);border:1px solid var(--line);border-radius:10px}
+  .loading{padding:60px;text-align:center;color:var(--sub)}
+  .loading.error{color:var(--red)}
+</style>
+</head>
+<body>
+<header>
+  <h1>欧菲斯 SCS 资质证书数据库</h1>
+  <div class="meta" id="metaLine">加载中…</div>
+</header>
+<div class="stats" id="statsBar"></div>
+<div class="tabs" id="tabsBar"></div>
+<main>
+  <div class="toolbar" id="toolbar"></div>
+  <div class="loading" id="loading">加载数据中…</div>
+  <div id="tableWrap" style="display:none"></div>
+  <div id="pager"></div>
+  <div class="empty" id="emptyMsg" style="display:none">没有匹配的资质记录</div>
+</main>
+<div id="imgPreview"></div>
+<div id="lightbox">
+  <div id="lbBar"><span id="lbCount"></span><span id="lbClose" title="关闭">✕</span></div>
+  <div id="lbPrev">‹</div>
+  <div id="lbContent"></div>
+  <div id="lbNext">›</div>
+  <div id="lbHint">图片：←/→ 切换附件 · ESC 关闭</div>
+</div>
+
+<script>
+const API_BASE = 'api/';
+const TYPES = ['检测报告','合格证','强制认证证书','产品认证证书','食品生产许可证'];
+
+// ─── STATE ────────────────────────────────────────
+let ALL_DATA = [];
+let activeType = 'all';
+let activeStatus = 'all';
+let sortKey = 'disable';
+let sortDir = 1;
+let page = 1;
+let pageSize = 50;
+let searchQ = '';
+
+let lbFiles = [];
+let lbIdx = 0;
+
+// ─── DATA LOADING ─────────────────────────────────
+async function loadData() {
+  try {
+    const idxResp = await fetch(API_BASE + 'index.json');
+    if (!idxResp.ok) throw new Error('Index not found');
+    const idx = await idxResp.json();
+
+    document.getElementById('metaLine').textContent =
+      `数据更新：${idx.generated || idx.today} · ${idx.brandCount||0} 个品牌 · 共 ${idx.recordCount||0} 条资质`;
+
+    ALL_DATA = [];
+    for (let i = 0; i < (idx.shardCount || 1); i++) {
+      try {
+        const resp = await fetch(API_BASE + `shard/${i}.json`);
+        if (!resp.ok) break;
+        const shard = await resp.json();
+        ALL_DATA.push(...(Array.isArray(shard) ? shard : []));
+      } catch(e) { break; }
+    }
+
+    if (ALL_DATA.length === 0) throw new Error('No data');
+
+    // 状态计算
+    const now = new Date();
+    ALL_DATA.forEach(d => {
+      if (d.disable) {
+        const exp = new Date(d.disable);
+        const monthsLeft = (exp - now) / (1000*60*60*24*30.44);
+        if (monthsLeft < 0) { d.flag = 'expired'; d.flagText = '已失效'; }
+        else if (monthsLeft <= 3) { d.flag = 'expiring'; d.flagText = '临期'; }
+        else { d.flag = 'valid'; d.flagText = '有效'; }
+      } else {
+        d.flag = 'valid'; d.flagText = '有效';
+      }
+    });
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<p style="color:#dc2626">数据加载失败，请先运行抓取脚本</p><p style="font-size:12px;margin-top:8px">'+e.message+'</p>';
+    console.error('Load error:', e);
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('tableWrap').style.display = 'block';
+  renderAll();
+}
+
+// ─── RENDER ───────────────────────────────────────
+function getFiltered() {
+  let data = ALL_DATA;
+  if (activeType !== 'all') data = data.filter(d => d.type === activeType);
+  if (activeStatus !== 'all') data = data.filter(d => d.flag === activeStatus);
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    data = data.filter(d =>
+      (d.code && d.code.toLowerCase().includes(q)) ||
+      (d.name && d.name.toLowerCase().includes(q)) ||
+      (d.brand && d.brand.toLowerCase().includes(q)) ||
+      (d.category && d.category.toLowerCase().includes(q)) ||
+      (d.company && d.company.toLowerCase().includes(q)) ||
+      (d.productName && d.productName.toLowerCase().includes(q))
+    );
+  }
+  return data;
+}
+
+function renderAll() {
+  renderStats();
+  renderTabs();
+  renderToolbar();
+  renderTable();
+}
+
+function renderStats() {
+  const total = ALL_DATA.length;
+  const valid = ALL_DATA.filter(d => d.flag === 'valid').length;
+  const expiring = ALL_DATA.filter(d => d.flag === 'expiring').length;
+  const expired = ALL_DATA.filter(d => d.flag === 'expired').length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat s-blue"><div class="num">${total.toLocaleString()}</div><div class="lbl">资质总数</div></div>
+    <div class="stat s-green"><div class="num">${valid.toLocaleString()}</div><div class="lbl">有效</div></div>
+    <div class="stat s-orange"><div class="num">${expiring.toLocaleString()}</div><div class="lbl">临期（≤3个月）</div></div>
+    <div class="stat s-red"><div class="num">${expired.toLocaleString()}</div><div class="lbl">已失效</div></div>
+  `;
+}
+
+function renderTabs() {
+  const tabs = [{ key: 'all', label: '全部', count: ALL_DATA.length }];
+  TYPES.forEach(t => {
+    const cnt = ALL_DATA.filter(d => d.type === t).length;
+    tabs.push({ key: t, label: t, count: cnt });
+  });
+  document.getElementById('tabsBar').innerHTML = tabs.map(t =>
+    `<div class="tab${activeType===t.key?' active':''}" onclick="switchType('${t.key}')">${t.label}<span class="cnt">${t.count.toLocaleString()}</span></div>`
+  ).join('');
+}
+
+function renderToolbar() {
+  document.getElementById('toolbar').innerHTML = `
+    <input type="text" placeholder="搜索资质名称 / 品牌 / 编号 / 类目 / 公司..."
+           value="${escAttr(searchQ)}" oninput="onSearch(this.value)">
+    <select onchange="onStatusFilter(this.value)">
+      <option value="all" ${activeStatus==='all'?'selected':''}>全部状态</option>
+      <option value="valid" ${activeStatus==='valid'?'selected':''}>有效</option>
+      <option value="expiring" ${activeStatus==='expiring'?'selected':''}>临期</option>
+      <option value="expired" ${activeStatus==='expired'?'selected':''}>已失效</option>
+    </select>
+    <span class="spacer"></span>
+    <span class="info" id="resultCount"></span>
+    <button onclick="exportCSV()">导出 CSV</button>
+  `;
+}
+
+function switchType(key) {
+  activeType = key; page = 1; renderAll();
+}
+
+function onSearch(v) { searchQ = v; page = 1; renderTable(); }
+function onStatusFilter(v) { activeStatus = v; page = 1; renderTabs(); renderTable(); }
+
+function sortData(data, key) {
+  return [...data].sort((a, b) => {
+    let va = a[key], vb = b[key];
+    if (va == null) va = '';
+    if (vb == null) vb = '';
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return -1 * sortDir;
+    if (va > vb) return 1 * sortDir;
+    return 0;
+  });
+}
+
+function toggleSort(key) {
+  if (sortKey === key) { sortDir *= -1; }
+  else { sortKey = key; sortDir = 1; }
+  renderTable();
+}
+
+function renderTable() {
+  let data = getFiltered();
+  data = sortData(data, sortKey);
+
+  document.getElementById('resultCount').textContent = `共 ${data.length.toLocaleString()} 条`;
+
+  const totalPages = Math.ceil(data.length / pageSize) || 1;
+  if (page > totalPages) page = totalPages;
+
+  const start = (page - 1) * pageSize;
+  const pageData = data.slice(start, start + pageSize);
+
+  if (pageData.length === 0) {
+    document.getElementById('tableWrap').innerHTML = '';
+    document.getElementById('emptyMsg').style.display = 'block';
+    document.getElementById('pager').innerHTML = '';
+    return;
+  }
+  document.getElementById('emptyMsg').style.display = 'none';
+
+  const cols = [
+    { key: 'code', label: '资质编号', w: '150px' },
+    { key: 'name', label: '资质名称', w: 'auto' },
+    { key: 'type', label: '资质类型', w: '110px' },
+    { key: 'brand', label: '品牌', w: '110px' },
+    { key: 'category', label: '产品类目', w: '180px' },
+    { key: 'status', label: '状态', w: '90px' },
+    { key: 'disable', label: '有效期至', w: '110px' },
+    { key: 'company', label: '所属公司', w: '160px' },
+    { key: 'files', label: '附件', w: '200px' },
+  ];
+
+  const thHtml = cols.map(c => {
+    const arrow = sortKey === c.key ? (sortDir === 1 ? ' ▲' : ' ▼') : '';
+    return `<th style="min-width:${c.w}" onclick="toggleSort('${c.key}')">${c.label}<span class="arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rowsHtml = pageData.map(d => {
+    const sc = d.flag === 'valid' ? 'b-valid' : d.flag === 'expiring' ? 'b-expiring' : 'b-expired';
+    const dateClass = d.flag === 'expired' ? ' style="color:#dc2626;font-weight:600"' : d.flag === 'expiring' ? ' style="color:#ea580c;font-weight:600"' : '';
+    const files = (d.files || []).map((u, i) => {
+      const lower = u.toLowerCase();
+      const cls = lower.includes('.pdf') ? 'is-pdf' : (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp)/) ? 'is-img' : 'is-other');
+      const name = u.split('/').pop().split('?')[0].slice(0, 30);
+      return `<span class="file-thumb ${cls}" data-files='${esc(JSON.stringify(d.files))}' data-idx="${i}" onmouseenter="previewFile(this,event)" onmouseleave="hidePreview()" onclick="openLightbox(${esc(JSON.stringify(d.files))},${i})" title="${esc(u)}">${esc(name)}</span>`;
+    }).join('');
+
+    return `<tr>
+      <td class="ellip" title="${esc(d.code)}"><code>${esc(d.code) || '--'}</code></td>
+      <td class="ellip" title="${esc(d.name)}">${esc(d.name) || '--'}</td>
+      <td><span class="badge" style="background:#eef2ff;color:#2563eb">${esc(d.type) || '--'}</span></td>
+      <td class="ellip" title="${esc(d.brand)}"><strong>${esc(d.brand) || '--'}</strong></td>
+      <td class="ellip" title="${esc(d.category)}">${esc(d.category) || '--'}</td>
+      <td><span class="badge ${sc}">${esc(d.flagText) || '--'}</span></td>
+      <td${dateClass}>${esc(d.disable) || '--'}</td>
+      <td class="ellip" title="${esc(d.company)}">${esc(d.company) || '--'}</td>
+      <td><div class="files-cell">${files || '<span style="color:#9ca3af">--</span>'}</div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tableWrap').innerHTML =
+    `<table><thead><tr>${thHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+
+  document.getElementById('pager').innerHTML = `
+    <span>第 ${page}/${totalPages} 页 · 共 ${data.length.toLocaleString()} 条</span>
+    <button ${page<=1?'disabled':''} onclick="goPage(1)">首页</button>
+    <button ${page<=1?'disabled':''} onclick="goPage(${page-1})">上一页</button>
+    <span style="display:flex;align-items:center;gap:4px">跳到<input type="text" id="pageJump" value="${page}" onkeydown="if(event.key==='Enter')goPage(parseInt(this.value)||1)" style="width:50px">页</span>
+    <button ${page>=totalPages?'disabled':''} onclick="goPage(${page+1})">下一页</button>
+    <button ${page>=totalPages?'disabled':''} onclick="goPage(${totalPages})">末页</button>
+  `;
+}
+
+function goPage(p) { p = Math.max(1, Math.min(p, Math.ceil(getFiltered().length/pageSize))); page = p; renderTable(); }
+
+// ─── EXPORT ───────────────────────────────────────
+function exportCSV() {
+  const data = getFiltered();
+  const BOM = '\uFEFF';
+  const headers = ['资质编号','资质名称','资质类型','品牌','产品类目','状态','有效期至','所属公司','附件'];
+  const rows = data.map(d => [
+    d.code||'', d.name||'', d.type||'', d.brand||'', d.category||'',
+    d.flagText||'', d.disable||'', d.company||'', (d.files||[]).join('|')
+  ].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','));
+
+  const csv = BOM + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `SCS_资质证书_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─── PREVIEW ──────────────────────────────────────
+function previewFile(el, ev) {
+  const files = JSON.parse(el.dataset.files);
+  const idx = parseInt(el.dataset.idx);
+  const url = files[idx];
+  if (!url) return;
+  const preview = document.getElementById('imgPreview');
+  const lower = url.toLowerCase();
+  if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp)/) && !lower.includes('.pdf')) {
+    preview.innerHTML = `<img src="${esc(url)}"><div class="cap">${esc(url.split('/').pop().slice(0,80))}</div>`;
+  } else if (lower.includes('.pdf')) {
+    preview.innerHTML = `<iframe class="pv-pdf" src="${esc(url)}"></iframe><div class="cap">${esc(url.split('/').pop().slice(0,80))}</div>`;
+  } else {
+    return;
+  }
+  preview.style.display = 'block';
+  const r = el.getBoundingClientRect();
+  const x = Math.min(r.right + 10, window.innerWidth - 800);
+  preview.style.left = Math.max(10, x) + 'px';
+  preview.style.top = Math.min(r.bottom + 8, window.innerHeight - 600) + 'px';
+}
+
+function hidePreview() {
+  document.getElementById('imgPreview').style.display = 'none';
+}
+
+function openLightbox(files, idx) {
+  lbFiles = files; lbIdx = idx;
+  renderLightbox();
+  document.getElementById('lightbox').style.display = 'flex';
+}
+
+function renderLightbox() {
+  const url = lbFiles[lbIdx];
+  const lower = (url || '').toLowerCase();
+  let html = '';
+  if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp)/) && !lower.includes('.pdf')) {
+    html = `<img src="${esc(url)}">`;
+  } else if (lower.includes('.pdf')) {
+    html = `<iframe src="${esc(url)}"></iframe>`;
+  } else {
+    html = `<div style="color:#fff;padding:30px">无法预览，<a href="${esc(url)}" target="_blank" style="color:#93c5fd">点此下载</a></div>`;
+  }
+  document.getElementById('lbContent').innerHTML = html;
+  document.getElementById('lbCount').textContent = `${lbIdx+1} / ${lbFiles.length}`;
+}
+
+document.getElementById('lbClose').onclick = () => document.getElementById('lightbox').style.display = 'none';
+document.getElementById('lbPrev').onclick = () => { lbIdx = (lbIdx-1+lbFiles.length) % lbFiles.length; renderLightbox(); };
+document.getElementById('lbNext').onclick = () => { lbIdx = (lbIdx+1) % lbFiles.length; renderLightbox(); };
+document.addEventListener('keydown', e => {
+  if (document.getElementById('lightbox').style.display === 'flex') {
+    if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none';
+    if (e.key === 'ArrowLeft') { lbIdx = (lbIdx-1+lbFiles.length) % lbFiles.length; renderLightbox(); }
+    if (e.key === 'ArrowRight') { lbIdx = (lbIdx+1) % lbFiles.length; renderLightbox(); }
+  }
+});
+
+// ─── HELPERS ──────────────────────────────────────
+function esc(s) { if (s == null) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s) { return esc(s); }
+
+// ─── BOOT ─────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
