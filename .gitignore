@@ -1,0 +1,21 @@
+# 登录会话（隐私）
+scraper/.scs_session/
+
+# 凭据
+scraper/.env
+
+# 临时数据
+scraper/__pycache__/
+scraper/*.pyc
+api/qual-today.json
+nul
+
+# 系统/编辑器
+.DS_Store
+.vscode/
+*.swp
+*.bak
+.idea/
+
+# WorkBuddy
+.workbuddy/
